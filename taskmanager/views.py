@@ -40,35 +40,36 @@ def get_project_object(request):
 
 def save_task_object(request):
     params = json.loads(request.body.decode('utf-8'))
-    # try:
-    with transaction.atomic():
-        status, task_id, supervisor_id = create_task_object(params)
+    print params
+    try:
+        with transaction.atomic():
+            status, task_id, supervisor_id = create_task_object(params)
 
-        if status:
-            print status
-            developers = params.get("developers")
-        task_obj = Task.objects.get(id = task_id)
-        count = 1
-        for developer in developers:
-            new_developer = Developer.objects.create(
-                name = developer["name"],
-                login = developer["login"],
-                password = developer["password"],
-                phone = developer["phone"],
-                born_date = convert_epoch_to_date(developer["born_date"]),
-                email = developer["email"],
-                years_seniority = developer["years_seniority"]
-            )
-            if count == 1:
-                supervisor_obj = Supervisor.objects.get(id=supervisor_id)
-                new_developer.supervisor1.add(supervisor_obj)
-                count = 0
-            task_obj.developer.add(new_developer)
+            if status:
+                print status
+                developers = params.get("developers")
+            task_obj = Task.objects.get(id = task_id)
+            
+            for developer in developers:
+                new_developer = Developer.objects.create(
+                    name = developer["name"],
+                    login = developer["login"],
+                    password = developer["password"],
+                    phone = developer["phone"],
+                    born_date = convert_epoch_to_date(developer["born_date"]),
+                    email = developer["email"],
+                    years_seniority = developer["years_seniority"],
+                    supervisor1 = Supervisor.objects.get(id=supervisor_id)
+                )
+                
+                task_obj.developer.add(new_developer)
+            
+            return JsonResponse({"validation": "Task_pbject created successfully"})
 
 
-    # except Exception as e:
-    #     print(e)
-    #     return JsonResponse({"validation": "Task creation Failed"})
+    except Exception as e:
+        print(e)
+        return JsonResponse({"validation": "Task creation Failed"})
 
 def create_task_object(params):
     #params = json.loads(request.body.decode('utf-8'))
@@ -91,10 +92,10 @@ def create_task_object(params):
 
     #saving a new task
     new_task = Task.objects.create(
-        title = params.get("task_title"),
-        description = params.get("task_description"),
-        time_elasped = params.get("task_time_elasped"),
-        importance = params.get("task_importance"),
+        title = params.get("title"),
+        description = params.get("description"),
+        time_elasped = params.get("time_elasped"),
+        importance = params.get("importance"),
         project = project_to_link
     )
     if new_task.id:
