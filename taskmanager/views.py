@@ -6,6 +6,7 @@ import json, datetime
 from django.utils import timezone
 from .models import Project, Supervisor, Developer, Task
 from .epoch_functions import *
+from django.db.models import Q
 # Create your views here.
 
 def IndexView(request):
@@ -101,7 +102,43 @@ def create_task_object(params):
         return True, new_task.id, new_supervisor.id
         print new_task.id
 
+def update_task(request):
+    with transaction.atomic():
+        params = json.loads(request.body.decode('utf-8'))
+        new_project = Project(title = params.get("title"), description = params.get("description"), client = params.get("client"))
+        new_project.save()
+        up_task = Task.objects.get(id=4)
+        up_task.description = "new_description"
+        up_task.project = new_project
+        up_task.save()
+        return JsonResponse({"validation":"task updated successfully", "status":True})
 
+def update_client(request):
+    with transaction.atomic():
+        params = json.loads(request.body.decode('utf-8'))
+        print "params", params
+        print "task", Project.objects.filter(client = "new_client")
+        task = Project.objects.filter(client = "new_client").update(client = params.get("client"))
+        return JsonResponse({"validation": "client name updated", "status": True})
+
+def delete_record(request):
+    with transaction.atomic():
+        params = json.loads(request.body.decode('utf-8'))
+        print "task", Task.objects.get(id=params.get("id"))
+        print "projects", Project.objects.all()
+        one_task = Task.objects.get(id=params.get("id"))
+        one_task.delete()
+        projects_to_delete = Project.objects.all()
+        projects_to_delete.delete()
+        return JsonResponse({"validation": "delete request executed successfully"})
+
+def q_in_queryset(request):
+    params = json.loads(request.body.decode('utf-8'))
+    project_list = Project.objects.filter(Q(client = params.get("client_g")) | Q(client = params.get("client_a")))
+    projects = []
+    for project in project_list:
+        projects.append(project.get_json())
+    return JsonResponse({"project_list": projects})
 
 
 
